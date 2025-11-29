@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # CI/CD Pipeline Runner
+  ci-runner:
+    image: tms-backend:latest
+    container_name: tms-ci-runner
+    environment:
+      - CI=true
+      - NODE_ENV=test
+      - ASPNETCORE_ENVIRONMENT=Testing
+    volumes:
+      - ./:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - tms-ci-network
+    command: >
+      sh -c "
+        echo 'Starting CI/CD Pipeline...' &&
+        echo 'Building images...' &&
+        docker build -f TMS.API/Dockerfile.windows -t tms-backend:ci .
+        docker build -f Frontend/Dockerfile.windows -t tms-frontend:ci ./Frontend &&
+        echo 'Running tests...' &&
+        docker-compose -f docker-compose.test.windows.yml up -d &&
+        sleep 30 &&
+        docker-compose -f docker-compose.test.windows.yml exec -T backend-test dotnet test &&
+        docker-compose -f docker-compose.test.windows.yml exec -T frontend-test npm test -- --coverage --watchAll=false &&
+        echo 'Running security scan...' &&
+        trivy image tms-backend:ci --format table --exit-code 0 &&
+        trivy image tms-frontend:ci --format table --exit-code 0 &&
+        echo 'Deploying to staging...' &&
+        docker-compose -f docker-compose.staging.windows.yml up -d &&
+        sleep 10 &&
+        echo 'Running health checks...' &&
+        curl -f http://localhost:3000 &&
+        curl -f http://localhost:3000/api/health &&
+        echo 'CI/CD Pipeline completed successfully!'
+      "
+    depends_on:
+      - postgres
+      - redis
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # PostgreSQL Database for CI/CD
+  postgres:
+    image: postgres:15-alpine
+    container_name: tms-postgres-ci-cd
+    environment:
+      POSTGRES_DB: tms_ci_db
+      POSTGRES_USER: tms_user
+      POSTGRES_PASSWORD: tms_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - tms-ci-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tms_user -d tms_ci_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # Redis for CI/CD
+  redis:
+    image: redis:7-alpine
+    container_name: tms-redis-ci-cd
+    ports:
+      - "6379:6379"
+    networks:
+      - tms-ci-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # Trivy Security Scanner
+  trivy:
+    image: aquasec/trivy:latest
+    container_name: tms-trivy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - tms-ci-network
+    command: >
+      sh -c "
+        echo 'Trivy security scanner ready' &&
+        tail -f /dev/null
+      "
+    # Windows-specific settings
+    platform: linux/amd64
+
+volumes:
+  postgres_ci_data:
+    driver: local
+  redis_ci_data:
+    driver: local
+
+networks:
+  tms-ci-network:
+    driver: bridge

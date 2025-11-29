@@ -1,0 +1,239 @@
+# Windows-specific .gitignore
+
+# Windows thumbnail cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+
+# Dump file
+*.stackdump
+
+# Folder config file
+[Dd]esktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Windows Installer files
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+
+# Windows shortcuts
+*.lnk
+
+# Windows specific
+*.bat
+*.cmd
+*.exe
+*.com
+*.pif
+*.scr
+*.vbs
+*.wsf
+*.wsh
+*.ps1
+*.psm1
+*.psd1
+*.ps1xml
+*.psc1
+*.pssc
+
+# Windows system files
+*.sys
+*.dll
+*.ocx
+*.tlb
+*.tlb
+*.inf
+*.cat
+*.chm
+*.hlp
+*.reg
+*.ini
+*.log
+*.tmp
+*.temp
+
+# Windows specific directories
+Windows/
+System32/
+SysWOW64/
+Program Files/
+Program Files (x86)/
+Users/
+Documents and Settings/
+
+# Windows specific environment
+.env.windows
+env.windows
+
+# Windows specific Docker files
+docker-compose.windows.yml
+Dockerfile.windows
+
+# Windows specific scripts
+start.bat
+*.bat
+*.cmd
+
+# Windows specific Makefile
+Makefile.windows
+
+# Windows specific README
+README_WINDOWS.md
+WINDOWS_SETUP.md
+
+# Windows specific PowerShell
+*.ps1
+*.psm1
+*.psd1
+*.ps1xml
+*.psc1
+*.pssc
+
+# Windows specific batch files
+*.bat
+*.cmd
+
+# Windows specific configuration
+*.ini
+*.cfg
+*.conf
+
+# Windows specific logs
+*.log
+*.txt
+
+# Windows specific temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+
+# Windows specific archives
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bz2
+
+# Windows specific executables
+*.exe
+*.com
+*.pif
+*.scr
+*.vbs
+*.wsf
+*.wsh
+
+# Windows specific shortcuts
+*.lnk
+*.url
+
+# Windows specific system files
+*.sys
+*.dll
+*.ocx
+*.tlb
+*.inf
+*.cat
+*.chm
+*.hlp
+*.reg
+
+# Windows specific directories
+Windows/
+System32/
+SysWOW64/
+Program Files/
+Program Files (x86)/
+Users/
+Documents and Settings/
+
+# Windows specific environment variables
+.env.windows
+env.windows
+
+# Windows specific Docker files
+docker-compose.windows.yml
+Dockerfile.windows
+
+# Windows specific scripts
+start.bat
+*.bat
+*.cmd
+
+# Windows specific Makefile
+Makefile.windows
+
+# Windows specific README
+README_WINDOWS.md
+WINDOWS_SETUP.md
+
+# Windows specific PowerShell
+*.ps1
+*.psm1
+*.psd1
+*.ps1xml
+*.psc1
+*.pssc
+
+# Windows specific batch files
+*.bat
+*.cmd
+
+# Windows specific configuration
+*.ini
+*.cfg
+*.conf
+
+# Windows specific logs
+*.log
+*.txt
+
+# Windows specific temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+*.orig
+
+# Windows specific archives
+*.zip
+*.rar
+*.7z
+*.tar
+*.gz
+*.bz2
+
+# Windows specific executables
+*.exe
+*.com
+*.pif
+*.scr
+*.vbs
+*.wsf
+*.wsh
+
+# Windows specific shortcuts
+*.lnk
+*.url
+
+# Windows specific system files
+*.sys
+*.dll
+*.ocx
+*.tlb
+*.inf
+*.cat
+*.chm
+*.hlp
+*.reg

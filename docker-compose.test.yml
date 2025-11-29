@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # Test Database
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: tms-postgres-test
+    environment:
+      POSTGRES_DB: tms_test_db
+      POSTGRES_USER: tms_user
+      POSTGRES_PASSWORD: tms_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5434:5432"
+    networks:
+      - tms-test-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tms_user -d tms_test_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Test Backend
+  backend-test:
+    build:
+      context: .
+      dockerfile: TMS.API/Dockerfile
+    container_name: tms-backend-test
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Testing
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres-test;Port=5432;Database=tms_test_db;Username=tms_user;Password=tms_password;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - JWT__Key=TestSecretKeyForTestingPurposesOnly!
+      - JWT__Issuer=TMS-Test
+      - JWT__Audience=TMS-Test
+      - JWT__ExpiryInHours=1
+    ports:
+      - "5002:80"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    networks:
+      - tms-test-network
+    volumes:
+      - test_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Test Frontend
+  frontend-test:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: tms-frontend-test
+    environment:
+      - REACT_APP_API_URL=http://localhost:5002
+    ports:
+      - "3001:80"
+    depends_on:
+      backend-test:
+        condition: service_healthy
+    networks:
+      - tms-test-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  test_uploads:
+    driver: local
+
+networks:
+  tms-test-network:
+    driver: bridge

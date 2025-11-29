@@ -1,0 +1,19 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Launch Browser (App)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:3000",
+            "webRoot": "${workspaceFolder}/src"
+        },
+        {
+            "name": "Launch Browser (Swagger)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5000/swagger",
+            "webRoot": "${workspaceFolder}/backend"
+        }
+    ]
+}

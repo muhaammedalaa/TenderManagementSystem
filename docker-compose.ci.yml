@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database for CI
+  postgres:
+    image: postgres:15-alpine
+    container_name: tms-postgres-ci
+    environment:
+      POSTGRES_DB: tms_ci_db
+      POSTGRES_USER: tms_user
+      POSTGRES_PASSWORD: tms_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - tms-ci-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tms_user -d tms_ci_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ASP.NET Core Backend API for CI
+  backend:
+    build:
+      context: .
+      dockerfile: TMS.API/Dockerfile
+    container_name: tms-backend-ci
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Testing
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=tms_ci_db;Username=tms_user;Password=tms_password;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - JWT__Key=CI_Test_Secret_Key_For_Testing_Purposes_Only!
+      - JWT__Issuer=TMS-CI
+      - JWT__Audience=TMS-CI
+      - JWT__ExpiryInHours=1
+    ports:
+      - "5000:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tms-ci-network
+    volumes:
+      - ci_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # React Frontend for CI
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile
+    container_name: tms-frontend-ci
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - tms-ci-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis for CI
+  redis:
+    image: redis:7-alpine
+    container_name: tms-redis-ci
+    ports:
+      - "6379:6379"
+    networks:
+      - tms-ci-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  ci_uploads:
+    driver: local
+
+networks:
+  tms-ci-network:
+    driver: bridge

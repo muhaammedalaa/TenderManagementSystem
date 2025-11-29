@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  # Include all services from main compose file
+  postgres:
+    extends:
+      file: docker-compose.yml
+      service: postgres
+
+  backend:
+    extends:
+      file: docker-compose.yml
+      service: backend
+
+  frontend:
+    extends:
+      file: docker-compose.yml
+      service: frontend
+
+  redis:
+    extends:
+      file: docker-compose.yml
+      service: redis
+
+  # Include monitoring services
+  prometheus:
+    extends:
+      file: docker-compose.monitoring.yml
+      service: prometheus
+
+  grafana:
+    extends:
+      file: docker-compose.monitoring.yml
+      service: grafana
+
+  node-exporter:
+    extends:
+      file: docker-compose.monitoring.yml
+      service: node-exporter
+
+  cadvisor:
+    extends:
+      file: docker-compose.monitoring.yml
+      service: cadvisor
+
+  redis-exporter:
+    extends:
+      file: docker-compose.monitoring.yml
+      service: redis-exporter
+
+  postgres-exporter:
+    extends:
+      file: docker-compose.monitoring.yml
+      service: postgres-exporter
+
+volumes:
+  postgres_data:
+    external: true
+  uploads_data:
+    external: true
+  redis_data:
+    external: true
+  prometheus_data:
+    external: true
+  grafana_data:
+    external: true
+
+networks:
+  tms-network:
+    external: true
+  tms-monitoring-network:
+    external: true

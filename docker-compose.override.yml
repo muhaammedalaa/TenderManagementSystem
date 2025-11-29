@@ -1,0 +1,39 @@
+# Override file for local development
+# This file is automatically loaded by docker-compose
+version: '3.8'
+
+services:
+  # Override backend for hot reload during development
+  backend:
+    build:
+      context: .
+      dockerfile: TMS.API/Dockerfile.dev
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    volumes:
+      - ./TMS.API:/app/src
+      - ./TMS.Application:/app/TMS.Application
+      - ./TMS.Core:/app/TMS.Core
+      - ./TMS.Infrastructure:/app/TMS.Infrastructure
+    command: dotnet watch run --urls http://+:80
+
+  # Override frontend for hot reload during development
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./Frontend/src:/app/src
+      - ./Frontend/public:/app/public
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+      - REACT_APP_API_URL=http://localhost:5000
+    command: npm start
+
+  # Override postgres for development
+  postgres:
+    environment:
+      - POSTGRES_DB=tms_db_dev
+    ports:
+      - "5433:5432"

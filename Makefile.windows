@@ -1,0 +1,285 @@
+# TMS Docker Management Makefile for Windows
+# Use with Git Bash or WSL
+
+.PHONY: help build up down restart logs clean dev prod test
+
+# Default target
+help:
+	@echo "TMS Docker Management Commands for Windows:"
+	@echo ""
+	@echo "Quick Start:"
+	@echo "  setup       - Complete setup for Windows (recommended)"
+	@echo "  start       - Start all services"
+	@echo "  stop        - Stop all services"
+	@echo ""
+	@echo "Development:"
+	@echo "  dev         - Start development environment"
+	@echo "  dev-build   - Build development images"
+	@echo "  dev-logs    - Show development logs"
+	@echo "  dev-down    - Stop development environment"
+	@echo ""
+	@echo "Production:"
+	@echo "  prod        - Start production environment"
+	@echo "  prod-build  - Build production images"
+	@echo "  prod-logs   - Show production logs"
+	@echo "  prod-down   - Stop production environment"
+	@echo ""
+	@echo "Database:"
+	@echo "  db-reset    - Reset database (WARNING: deletes all data)"
+	@echo "  db-backup   - Backup database"
+	@echo "  db-restore  - Restore database from backup"
+	@echo ""
+	@echo "Monitoring:"
+	@echo "  monitoring     - Start monitoring stack (Prometheus + Grafana)"
+	@echo "  monitoring-down - Stop monitoring stack"
+	@echo "  monitoring-logs - Show monitoring logs"
+	@echo "  monitoring-status - Show monitoring status"
+	@echo ""
+	@echo "Testing:"
+	@echo "  test         - Start test environment"
+	@echo "  test-build   - Build test images"
+	@echo "  test-logs    - Show test logs"
+	@echo "  test-down    - Stop test environment"
+	@echo "  test-run     - Run tests in test environment"
+	@echo "  test-clean   - Clean test environment"
+	@echo ""
+	@echo "Logs per Service:"
+	@echo "  logs-backend    - Show backend logs only"
+	@echo "  logs-frontend   - Show frontend logs only"
+	@echo "  logs-db         - Show database logs only"
+	@echo "  logs-redis      - Show redis logs only"
+	@echo "  logs-all        - Show all services logs"
+	@echo ""
+	@echo "CI/CD:"
+	@echo "  ci-build    - Build Docker images for CI/CD"
+	@echo "  ci-test     - Run CI/CD tests"
+	@echo "  ci-security - Run security scan"
+	@echo "  ci-deploy   - Deploy application"
+	@echo "  ci-health   - Run health checks"
+	@echo "  ci-full     - Run full CI/CD pipeline"
+	@echo "  ci-cleanup  - Clean up CI/CD resources"
+	@echo "  ci-dashboard - Run CI/CD with dashboard"
+	@echo "  ci-dashboard-stop - Stop CI/CD dashboard"
+	@echo ""
+	@echo "Utilities:"
+	@echo "  clean       - Clean up containers, images, and volumes"
+	@echo "  logs        - Show logs for all services"
+	@echo "  status      - Show status of all services"
+	@echo "  shell-backend  - Open shell in backend container"
+	@echo "  shell-frontend - Open shell in frontend container"
+	@echo "  shell-db    - Open shell in database container"
+
+# Quick start commands
+setup:
+	@echo "Setting up TMS for Windows..."
+	@if not exist .env copy env.windows .env
+	@echo "Building images..."
+	@docker-compose -f docker-compose.windows.yml build
+	@echo "Starting services..."
+	@docker-compose -f docker-compose.windows.yml up -d
+	@echo "Waiting for services to be ready..."
+	@timeout /t 30 /nobreak >nul
+	@echo "Setup complete! Services are running:"
+	@echo "- Frontend: http://localhost:3000"
+	@echo "- Backend API: http://localhost:5000"
+	@echo "- Database: localhost:5432"
+	@echo ""
+	@echo "Use 'make logs' to see logs"
+	@echo "Use 'make stop' to stop services"
+
+start:
+	docker-compose -f docker-compose.windows.yml up -d
+
+stop:
+	docker-compose -f docker-compose.windows.yml down
+
+# Development commands
+dev:
+	docker-compose -f docker-compose.windows.yml up -d
+
+dev-build:
+	docker-compose -f docker-compose.windows.yml build
+
+dev-logs:
+	docker-compose -f docker-compose.windows.yml logs -f
+
+dev-down:
+	docker-compose -f docker-compose.windows.yml down
+
+# Production commands
+prod:
+	docker-compose up -d
+
+prod-build:
+	docker-compose build
+
+prod-logs:
+	docker-compose logs -f
+
+prod-down:
+	docker-compose down
+
+# Database commands
+db-reset:
+	@echo "WARNING: This will delete all data in the database!"
+	@set /p confirm="Are you sure? (y/N): "
+	@if /i "!confirm!"=="y" (
+		docker-compose -f docker-compose.windows.yml down -v
+		docker-compose -f docker-compose.windows.yml up -d postgres
+		@echo "Database reset complete"
+	) else (
+		@echo "Database reset cancelled"
+	)
+
+db-backup:
+	@if not exist backups mkdir backups
+	docker-compose -f docker-compose.windows.yml exec postgres pg_dump -U tms_user tms_db > backups\tms_backup_%date:~-4,4%%date:~-10,2%%date:~-7,2%_%time:~0,2%%time:~3,2%%time:~6,2%.sql
+	@echo "Database backup created in backups\ directory"
+
+db-restore:
+	@echo "Available backups:"
+	@dir backups\*.sql 2>nul || echo "No backups found"
+	@set /p backup_file="Enter backup filename: "
+	docker-compose -f docker-compose.windows.yml exec -T postgres psql -U tms_user -d tms_db < backups\%backup_file%
+	@echo "Database restored from %backup_file%"
+
+# Monitoring commands
+monitoring:
+	docker-compose -f docker-compose.monitoring.yml up -d
+
+monitoring-down:
+	docker-compose -f docker-compose.monitoring.yml down
+
+monitoring-logs:
+	docker-compose -f docker-compose.monitoring.yml logs -f
+
+monitoring-status:
+	docker-compose -f docker-compose.monitoring.yml ps
+
+# Testing commands
+test:
+	docker-compose -f docker-compose.test.yml up -d
+
+test-build:
+	docker-compose -f docker-compose.test.yml build
+
+test-logs:
+	docker-compose -f docker-compose.test.yml logs -f
+
+test-down:
+	docker-compose -f docker-compose.test.yml down
+
+test-run:
+	docker-compose -f docker-compose.test.yml exec backend-test dotnet test
+
+test-clean:
+	docker-compose -f docker-compose.test.yml down -v --rmi all --remove-orphans
+	@echo "Test environment cleaned"
+
+# Logs per service commands
+logs-backend:
+	docker-compose -f docker-compose.windows.yml logs -f backend
+
+logs-frontend:
+	docker-compose -f docker-compose.windows.yml logs -f frontend
+
+logs-db:
+	docker-compose -f docker-compose.windows.yml logs -f postgres
+
+logs-redis:
+	docker-compose -f docker-compose.windows.yml logs -f redis
+
+logs-all:
+	docker-compose -f docker-compose.windows.yml logs -f
+
+# CI/CD commands
+ci-build:
+	@echo "Building Docker images for CI/CD..."
+	docker build -f TMS.API/Dockerfile.windows -t tms-backend:latest .
+	docker build -f Frontend/Dockerfile.windows -t tms-frontend:latest ./Frontend
+	@echo "CI/CD images built successfully"
+
+ci-test:
+	@echo "Running CI/CD tests..."
+	docker-compose -f docker-compose.test.windows.yml up -d
+	@echo "Waiting for services to be ready..."
+	@timeout /t 30 /nobreak >nul
+	docker-compose -f docker-compose.test.windows.yml exec -T backend-test dotnet test
+	docker-compose -f docker-compose.test.windows.yml exec -T frontend-test npm test -- --coverage --watchAll=false
+	docker-compose -f docker-compose.test.windows.yml down
+	@echo "CI/CD tests completed"
+
+ci-security:
+	@echo "Running security scan..."
+	@if exist "C:\Program Files\Trivy\trivy.exe" (
+		C:\Program Files\Trivy\trivy.exe image tms-backend:latest --format table --exit-code 0
+		C:\Program Files\Trivy\trivy.exe image tms-frontend:latest --format table --exit-code 0
+	) else (
+		@echo "Trivy not found. Skipping security scan."
+	)
+	@echo "Security scan completed"
+
+ci-deploy:
+	@echo "Deploying application..."
+	docker-compose -f docker-compose.staging.windows.yml up -d
+	@echo "Deployment completed"
+
+ci-health:
+	@echo "Running health checks..."
+	@timeout /t 10 /nobreak >nul
+	@curl -f http://localhost:3000 >nul 2>&1 && echo "Frontend health check passed" || echo "Frontend health check failed"
+	@curl -f http://localhost:3000/api/health >nul 2>&1 && echo "Backend health check passed" || echo "Backend health check failed"
+	@echo "Health checks completed"
+
+ci-full:
+	@echo "Running full CI/CD pipeline..."
+	@$(MAKE) ci-build
+	@$(MAKE) ci-test
+	@$(MAKE) ci-security
+	@$(MAKE) ci-deploy
+	@$(MAKE) ci-health
+	@echo "Full CI/CD pipeline completed successfully!"
+
+ci-cleanup:
+	@echo "Cleaning up CI/CD resources..."
+	docker-compose -f docker-compose.windows.yml down
+	docker-compose -f docker-compose.test.windows.yml down
+	docker-compose -f docker-compose.staging.windows.yml down
+	docker-compose -f docker-compose.prod.windows.yml down
+	docker-compose -f docker-compose.ci-dashboard.windows.yml down
+	docker image prune -f
+	@echo "CI/CD cleanup completed"
+
+ci-dashboard:
+	@echo "Starting CI/CD with Dashboard..."
+	@echo "Dashboard will be available at: http://localhost:8080"
+	docker-compose -f docker-compose.ci-dashboard.windows.yml up -d
+	@echo "CI/CD Dashboard started successfully!"
+
+ci-dashboard-stop:
+	@echo "Stopping CI/CD Dashboard..."
+	docker-compose -f docker-compose.ci-dashboard.windows.yml down
+	@echo "CI/CD Dashboard stopped"
+
+# Utility commands
+clean:
+	docker-compose -f docker-compose.windows.yml down -v --rmi all --remove-orphans
+	docker-compose -f docker-compose.test.yml down -v --rmi all --remove-orphans
+	docker-compose -f docker-compose.monitoring.yml down -v --rmi all --remove-orphans
+	docker system prune -f
+	@echo "Cleanup complete"
+
+logs:
+	docker-compose -f docker-compose.windows.yml logs -f
+
+status:
+	docker-compose -f docker-compose.windows.yml ps
+
+shell-backend:
+	docker-compose -f docker-compose.windows.yml exec backend /bin/bash
+
+shell-frontend:
+	docker-compose -f docker-compose.windows.yml exec frontend /bin/sh
+
+shell-db:
+	docker-compose -f docker-compose.windows.yml exec postgres psql -U tms_user -d tms_db

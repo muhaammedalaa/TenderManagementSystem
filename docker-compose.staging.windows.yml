@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: tms-postgres-staging
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tms_staging_db
+      POSTGRES_USER: tms_user
+      POSTGRES_PASSWORD: tms_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - tms-staging-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tms_user -d tms_staging_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # ASP.NET Core Backend API
+  backend:
+    image: tms-backend:latest
+    container_name: tms-backend-staging
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=tms_staging_db;Username=tms_user;Password=tms_password;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - JWT__Key=StagingSecretKeyForTestingPurposesOnly!
+      - JWT__Issuer=TMS-Staging
+      - JWT__Audience=TMS-Staging
+      - JWT__ExpiryInHours=8
+    ports:
+      - "5000:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tms-staging-network
+    volumes:
+      - uploads_staging_data:/app/uploads
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # React Frontend
+  frontend:
+    image: tms-frontend:latest
+    container_name: tms-frontend-staging
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=http://localhost:5000
+      - REACT_APP_ENVIRONMENT=staging
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - tms-staging-network
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # Redis for caching
+  redis:
+    image: redis:7-alpine
+    container_name: tms-redis-staging
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_staging_data:/data
+    networks:
+      - tms-staging-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Windows-specific settings
+    platform: linux/amd64
+
+volumes:
+  postgres_staging_data:
+    driver: local
+  uploads_staging_data:
+    driver: local
+  redis_staging_data:
+    driver: local
+
+networks:
+  tms-staging-network:
+    driver: bridge

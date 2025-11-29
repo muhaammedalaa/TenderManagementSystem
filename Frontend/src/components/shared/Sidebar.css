@@ -1,0 +1,99 @@
+.sidebar-content .activeClicked {
+  background-color: var(--sidebar-active-background-color); /* Example active background color */
+  color: var(--sidebar-active-text-color) !important; /* Example active text color */
+  border-left: 4px solid var(--sidebar-active-border-color); /* Active indicator */
+}
+
+.sidebar-content .activeClicked .cdb-sidebar-menu-item {
+  color: var(--sidebar-active-text-color) !important;
+}
+
+.sidebar-content .cdb-sidebar-menu-item {
+  font-size: 1.1rem;
+  font-weight: 500;
+  line-height: 1.5;
+  padding: 10px 15px;
+  margin-bottom: 5px;
+  border-radius: 5px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  color: var(--sidebar-text-color);
+  background-color: var(--sidebar-background-color);
+  transition: all 0.3s ease; /* Smooth transition for hover effects */
+}
+
+.sidebar-content .cdb-sidebar-menu-item:hover {
+  background-color: var(--sidebar-hover-background-color); /* Subtle hover background */
+  color: var(--sidebar-hover-text-color); /* Hover text color */
+  transform: translateX(5px); /* Slight movement on hover */
+}
+
+.sidebar-content .cdb-sidebar-menu-item svg {
+  margin-right: 10px; /* Space between icon and text */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  .cdb-sidebar {
+    width: 60px; /* Collapsed width */
+  }
+
+  .cdb-sidebar.toggled {
+    width: 250px; /* Expanded width */
+  }
+
+  .cdb-sidebar .cdb-sidebar-content {
+    position: absolute;
+    width: 250px;
+    background-color: inherit;
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+
+  .cdb-sidebar.toggled .cdb-sidebar-content {
+    transform: translateX(0%);
+  }
+
+  .cdb-sidebar .cdb-sidebar-header .text-decoration-none {
+    display: none;
+  }
+
+  .cdb-sidebar.toggled .cdb-sidebar-header .text-decoration-none {
+    display: block;
+  }
+
+  .cdb-sidebar .cdb-sidebar-footer {
+    display: none;
+  }
+
+  .cdb-sidebar.toggled .cdb-sidebar-footer {
+    display: block;
+  }
+
+  .cdb-sidebar .cdb-sidebar-menu-item span {
+    display: none;
+  }
+
+  .cdb-sidebar.toggled .cdb-sidebar-menu-item span {
+    display: inline;
+  }
+
+  .cdb-sidebar .cdb-sidebar-menu-item svg {
+    margin-right: 0;
+  }
+
+  .cdb-sidebar.toggled .cdb-sidebar-menu-item svg {
+    margin-right: 10px;
+  }
+}
+
+
+.sidebar-logo {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+  padding-bottom: 20px; /* Add some space below the logo */
+}

@@ -1,0 +1,24 @@
+{
+  "translation": {
+    "dashboard": "لوحة القيادة",
+    "tenders": "المناقصات",
+    "quotations": "عروض الأسعار",
+    "suppliers": "الموردون",
+    "reports": "التقارير",
+    "settings": "الإعدادات",
+    "login": "تسجيل الدخول",
+    "username": "اسم المستخدم",
+    "password": "كلمة المرور",
+    "openTenders": "المناقصات المفتوحة",
+    "closedTenders": "المناقصات المغلقة",
+    "activeSuppliers": "الموردون النشطون",
+    "tendersStatus": "حالة المناقصات",
+    "open": "مفتوح",
+    "closed": "مغلق",
+    "inEvaluation": "قيد التقييم",
+    "totalSuppliers": "إجمالي الموردين",
+    "notifications": "الإشعارات",
+    "tenderClosingSoon": "المناقصة {{tenderId}} على وشك الإغلاق",
+    "supplierNeedsReEvaluation": "المورد {{supplierName}} يحتاج إلى إعادة تقييم"
+  }
+}

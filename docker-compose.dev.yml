@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database (same as production)
+  postgres:
+    image: postgres:15-alpine
+    container_name: tms-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tms_db_dev
+      POSTGRES_USER: tms_user
+      POSTGRES_PASSWORD: tms_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5433:5432"
+    networks:
+      - tms-dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tms_user -d tms_db_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ASP.NET Core Backend API (Development)
+  backend:
+    build:
+      context: .
+      dockerfile: TMS.API/Dockerfile.dev
+    container_name: tms-backend-dev
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=tms_db_dev;Username=tms_user;Password=tms_password;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;
+      - JWT__Key=YourSuperSecretKeyThatIsAtLeast32CharactersLong!
+      - JWT__Issuer=TMS
+      - JWT__Audience=TMS
+      - JWT__ExpiryInHours=24
+    ports:
+      - "5001:80"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - tms-dev-network
+    volumes:
+      - uploads_dev_data:/app/uploads
+      - ./TMS.API:/app/src
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  postgres_dev_data:
+    driver: local
+  uploads_dev_data:
+    driver: local
+
+networks:
+  tms-dev-network:
+    driver: bridge

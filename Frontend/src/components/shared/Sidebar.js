@@ -1,0 +1,1 @@
+<img src="/Logo.png" alt="Logo" style={{ width: '100px', padding: '10px' }} className="sidebar-logo" />

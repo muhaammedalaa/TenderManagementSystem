@@ -1,0 +1,24 @@
+{
+  "translation": {
+    "dashboard": "Dashboard",
+    "tenders": "Tenders",
+    "quotations": "Quotations",
+    "suppliers": "Suppliers",
+    "reports": "Reports",
+    "settings": "Settings",
+    "login": "Login",
+    "username": "Username",
+    "password": "Password",
+    "openTenders": "Open Tenders",
+    "closedTenders": "Closed Tenders",
+    "activeSuppliers": "Active Suppliers",
+    "tendersStatus": "Tenders Status",
+    "open": "Open",
+    "closed": "Closed",
+    "inEvaluation": "In Evaluation",
+    "totalSuppliers": "Total Suppliers",
+    "notifications": "Notifications",
+    "tenderClosingSoon": "Tender {{tenderId}} is closing soon",
+    "supplierNeedsReEvaluation": "Supplier {{supplierName}} needs to be re-evaluated"
+  }
+}

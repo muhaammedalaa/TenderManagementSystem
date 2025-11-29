@@ -1,0 +1,136 @@
+version: '3.8'
+
+services:
+  # Local CI/CD Pipeline Runner
+  local-ci-runner:
+    image: tms-backend:latest
+    container_name: tms-local-ci-runner
+    environment:
+      - CI=true
+      - NODE_ENV=test
+      - ASPNETCORE_ENVIRONMENT=Testing
+      - LOCAL_CI=true
+    volumes:
+      - ./:/app
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./scripts:/scripts
+    networks:
+      - tms-local-ci-network
+    command: >
+      sh -c "
+        echo '🚀 Starting Local CI/CD Pipeline...' &&
+        echo '📦 Building images...' &&
+        docker build -f TMS.API/Dockerfile.windows -t tms-backend:local-ci .
+        docker build -f Frontend/Dockerfile.windows -t tms-frontend:local-ci ./Frontend &&
+        echo '✅ Images built successfully' &&
+        echo '🧪 Running tests...' &&
+        docker-compose -f docker-compose.test.windows.yml up -d &&
+        sleep 30 &&
+        echo '🔍 Running backend tests...' &&
+        docker-compose -f docker-compose.test.windows.yml exec -T backend-test dotnet test --logger 'trx;LogFileName=test-results.trx' &&
+        echo '🔍 Running frontend tests...' &&
+        docker-compose -f docker-compose.test.windows.yml exec -T frontend-test npm test -- --coverage --watchAll=false &&
+        echo '✅ Tests completed successfully' &&
+        echo '🔒 Running security scan...' &&
+        trivy image tms-backend:local-ci --format table --exit-code 0 &&
+        trivy image tms-frontend:local-ci --format table --exit-code 0 &&
+        echo '✅ Security scan completed' &&
+        echo '🚀 Deploying to staging...' &&
+        docker-compose -f docker-compose.staging.windows.yml up -d &&
+        sleep 15 &&
+        echo '🏥 Running health checks...' &&
+        curl -f http://localhost:3000 &&
+        curl -f http://localhost:3000/api/health &&
+        echo '✅ Health checks passed' &&
+        echo '🎉 Local CI/CD Pipeline completed successfully!' &&
+        echo '📊 Pipeline Summary:' &&
+        echo '  - Images: Built ✅' &&
+        echo '  - Tests: Passed ✅' &&
+        echo '  - Security: Scanned ✅' &&
+        echo '  - Deployment: Completed ✅' &&
+        echo '  - Health: Verified ✅'
+      "
+    depends_on:
+      - postgres
+      - redis
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # PostgreSQL Database for Local CI/CD
+  postgres:
+    image: postgres:15-alpine
+    container_name: tms-postgres-local-ci
+    environment:
+      POSTGRES_DB: tms_local_ci_db
+      POSTGRES_USER: tms_user
+      POSTGRES_PASSWORD: tms_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - ./database_schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+    ports:
+      - "5432:5432"
+    networks:
+      - tms-local-ci-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tms_user -d tms_local_ci_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # Redis for Local CI/CD
+  redis:
+    image: redis:7-alpine
+    container_name: tms-redis-local-ci
+    ports:
+      - "6379:6379"
+    networks:
+      - tms-local-ci-network
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # Trivy Security Scanner
+  trivy:
+    image: aquasec/trivy:latest
+    container_name: tms-trivy-local-ci
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - tms-local-ci-network
+    command: >
+      sh -c "
+        echo '🔒 Trivy security scanner ready' &&
+        tail -f /dev/null
+      "
+    # Windows-specific settings
+    platform: linux/amd64
+
+  # Pipeline Monitor
+  pipeline-monitor:
+    image: nginx:alpine
+    container_name: tms-pipeline-monitor
+    ports:
+      - "8080:80"
+    volumes:
+      - ./monitoring/pipeline-dashboard.html:/usr/share/nginx/html/index.html
+    networks:
+      - tms-local-ci-network
+    # Windows-specific settings
+    platform: linux/amd64
+
+volumes:
+  postgres_local_ci_data:
+    driver: local
+  redis_local_ci_data:
+    driver: local
+
+networks:
+  tms-local-ci-network:
+    driver: bridge

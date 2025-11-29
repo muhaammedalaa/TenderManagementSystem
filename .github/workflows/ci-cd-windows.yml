@@ -1,0 +1,224 @@
+name: TMS CI/CD Pipeline - Windows
+
+on:
+  push:
+    branches: [ main, develop, feature/* ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+        - staging
+        - production
+      skip_tests:
+        description: 'Skip tests'
+        required: false
+        default: false
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  DOCKER_BUILDKIT: 1
+
+jobs:
+  # Build and Test Job for Windows
+  build-and-test-windows:
+    runs-on: windows-latest
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+        
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+          type=raw,value=staging,enable={{is_default_branch}}
+          type=raw,value=windows,enable={{is_default_branch}}
+          
+    - name: Build and push backend image (Windows)
+      id: build-backend
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./TMS.API/Dockerfile.windows
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend-windows:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64
+        
+    - name: Build and push frontend image (Windows)
+      id: build-frontend
+      uses: docker/build-push-action@v5
+      with:
+        context: ./Frontend
+        file: ./Frontend/Dockerfile.windows
+        push: true
+        tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-frontend-windows:${{ github.sha }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64
+
+  # Test Job for Windows
+  test-windows:
+    runs-on: windows-latest
+    needs: build-and-test-windows
+    if: ${{ !inputs.skip_tests }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      
+    - name: Start test environment (Windows)
+      run: |
+        docker-compose -f docker-compose.test.windows.yml up -d
+        # Wait for services to be ready
+        Start-Sleep -Seconds 30
+        $maxAttempts = 60
+        $attempt = 0
+        do {
+            try {
+                $response = Invoke-WebRequest -Uri "http://localhost:5002/health" -UseBasicParsing -TimeoutSec 5
+                $backendReady = $response.StatusCode -eq 200
+            } catch {
+                $backendReady = $false
+            }
+            if (-not $backendReady) {
+                Start-Sleep -Seconds 5
+                $attempt++
+            }
+        } while (-not $backendReady -and $attempt -lt $maxAttempts)
+        
+    - name: Run backend tests (Windows)
+      run: |
+        docker-compose -f docker-compose.test.windows.yml exec -T backend-test dotnet test --logger "trx;LogFileName=test-results.trx"
+        
+    - name: Run frontend tests (Windows)
+      run: |
+        docker-compose -f docker-compose.test.windows.yml exec -T frontend-test npm test -- --coverage --watchAll=false
+        
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-windows
+        path: |
+          test-results.trx
+          coverage/
+          
+    - name: Stop test environment
+      if: always()
+      run: |
+        docker-compose -f docker-compose.test.windows.yml down -v
+
+  # Security Scan Job for Windows
+  security-scan-windows:
+    runs-on: windows-latest
+    needs: build-and-test-windows
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Run Trivy vulnerability scanner (Windows)
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-backend-windows:${{ github.sha }}'
+        format: 'sarif'
+        output: 'trivy-results-windows.sarif'
+        
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      if: always()
+      with:
+        sarif_file: 'trivy-results-windows.sarif'
+
+  # Deploy to Staging (Windows)
+  deploy-staging-windows:
+    runs-on: windows-latest
+    needs: [build-and-test-windows, test-windows]
+    if: github.ref == 'refs/heads/develop' || github.event_name == 'workflow_dispatch'
+    environment: staging-windows
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to staging (Windows)
+      run: |
+        Write-Host "Deploying to staging environment (Windows)..."
+        # Add your staging deployment commands here
+        # Example: docker-compose -f docker-compose.staging.windows.yml up -d
+        
+    - name: Run smoke tests (Windows)
+      run: |
+        Write-Host "Running smoke tests (Windows)..."
+        # Add smoke tests here
+        # Example: Invoke-WebRequest -Uri "http://staging.tms.com/health" -UseBasicParsing
+
+  # Deploy to Production (Windows)
+  deploy-production-windows:
+    runs-on: windows-latest
+    needs: [build-and-test-windows, test-windows, security-scan-windows]
+    if: github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && inputs.environment == 'production')
+    environment: production-windows
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Deploy to production (Windows)
+      run: |
+        Write-Host "Deploying to production environment (Windows)..."
+        # Add your production deployment commands here
+        # Example: docker-compose -f docker-compose.prod.windows.yml up -d
+        
+    - name: Run health checks (Windows)
+      run: |
+        Write-Host "Running health checks (Windows)..."
+        # Add health checks here
+        # Example: Invoke-WebRequest -Uri "http://production.tms.com/health" -UseBasicParsing
+
+  # Cleanup Job (Windows)
+  cleanup-windows:
+    runs-on: windows-latest
+    needs: [deploy-staging-windows, deploy-production-windows]
+    if: always()
+    
+    steps:
+    - name: Clean up old images (Windows)
+      run: |
+        Write-Host "Cleaning up old images (Windows)..."
+        # Add cleanup commands here
+        # Example: docker system prune -f

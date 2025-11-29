@@ -1,0 +1,143 @@
+{
+  "testUsers": [
+    {
+      "username": "admin",
+      "email": "admin@tms.com",
+      "password": "Admin123!",
+      "firstName": "System",
+      "lastName": "Administrator",
+      "role": "Admin"
+    },
+    {
+      "username": "manager1",
+      "email": "manager1@tms.com",
+      "password": "Manager123!",
+      "firstName": "John",
+      "lastName": "Manager",
+      "role": "Manager"
+    },
+    {
+      "username": "user1",
+      "email": "user1@tms.com",
+      "password": "User123!",
+      "firstName": "Jane",
+      "lastName": "User",
+      "role": "User"
+    },
+    {
+      "username": "supplier1",
+      "email": "supplier1@example.com",
+      "password": "Supplier123!",
+      "firstName": "Bob",
+      "lastName": "Supplier",
+      "role": "Supplier"
+    }
+  ],
+  "testEntities": [
+    {
+      "name": "Ministry of Health",
+      "code": "MOH",
+      "description": "Government health ministry"
+    },
+    {
+      "name": "Ministry of Education",
+      "code": "MOE",
+      "description": "Government education ministry"
+    },
+    {
+      "name": "Ministry of Transportation",
+      "code": "MOT",
+      "description": "Government transportation ministry"
+    }
+  ],
+  "testSuppliers": [
+    {
+      "name": "Tech Solutions Inc",
+      "email": "contact@techsolutions.com",
+      "category": "Technology",
+      "contactPerson": "Alice Johnson"
+    },
+    {
+      "name": "Construction Works Ltd",
+      "email": "info@constructionworks.com",
+      "category": "Construction",
+      "contactPerson": "Bob Smith"
+    },
+    {
+      "name": "Medical Supplies Co",
+      "email": "sales@medsupplies.com",
+      "category": "Healthcare",
+      "contactPerson": "Carol Davis"
+    }
+  ],
+  "testTenders": [
+    {
+      "title": "IT Infrastructure Upgrade",
+      "description": "Upgrade of computer systems and network infrastructure",
+      "category": "Technology",
+      "estimatedBudget": 500000,
+      "submissionDeadline": 30,
+      "openingDate": 35
+    },
+    {
+      "title": "School Building Construction",
+      "description": "Construction of new elementary school building",
+      "category": "Construction",
+      "estimatedBudget": 2000000,
+      "submissionDeadline": 45,
+      "openingDate": 50
+    }
+  ],
+  "apiEndpoints": {
+    "authentication": {
+      "login": "/api/auth/login",
+      "register": "/api/auth/register"
+    },
+    "users": {
+      "list": "/api/users",
+      "get": "/api/users/{id}",
+      "create": "/api/users",
+      "update": "/api/users/{id}",
+      "delete": "/api/users/{id}"
+    },
+    "entities": {
+      "list": "/api/entities",
+      "get": "/api/entities/{id}",
+      "create": "/api/entities",
+      "update": "/api/entities/{id}"
+    },
+    "suppliers": {
+      "list": "/api/suppliers",
+      "get": "/api/suppliers/{id}",
+      "create": "/api/suppliers",
+      "update": "/api/suppliers/{id}"
+    },
+    "tenders": {
+      "list": "/api/tenders",
+      "get": "/api/tenders/{id}",
+      "create": "/api/tenders",
+      "update": "/api/tenders/{id}"
+    },
+    "quotations": {
+      "list": "/api/quotations",
+      "get": "/api/quotations/{id}",
+      "create": "/api/quotations",
+      "update": "/api/quotations/{id}"
+    },
+    "contracts": {
+      "list": "/api/contracts",
+      "get": "/api/contracts/{id}",
+      "create": "/api/contracts",
+      "update": "/api/contracts/{id}"
+    },
+    "notifications": {
+      "list": "/api/notifications",
+      "get": "/api/notifications/{id}",
+      "create": "/api/notifications"
+    },
+    "dashboard": {
+      "stats": "/api/dashboard/stats",
+      "guarantees": "/api/dashboard/guarantees"
+    }
+  }
+}
