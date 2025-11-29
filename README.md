@@ -40,6 +40,13 @@ make setup
 - ✅ **Notifications** - Real-time notifications
 - ✅ **File Uploads** - Document management
 - ✅ **Dashboard** - Analytics and KPIs
+- ✅Invoice Management .
+- ✅Payment Management
+- ✅Payment Scheduling
+- ✅Financial Dashboard
+- ✅Financial Reports
+- ✅Advanced Features
+  
 
 ### Technical Features
 - ✅ **Multi-language Support** - Arabic/English with RTL/LTR
